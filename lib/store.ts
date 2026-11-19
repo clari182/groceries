@@ -14,23 +14,15 @@ export type Item = {
   updatedAt: number;
 };
 
-export type Checkout = {
-  id: string;
-  amount: number;
-  at: number; // when it was logged (ms since epoch)
-  listId?: string; // which list the trip was for (older checkouts have none)
-};
-
 export type State = {
   lists: List[];
   items: Item[];
-  checkouts: Checkout[];
   // Every name ever added, with how often it was used. Feeds autocomplete.
   // listId is the list the name was last added to, so suggestions can favor it.
   known: Record<string, { name: string; count: number; lastUsed: number; listId?: string }>;
 };
 
-const empty = (): State => ({ lists: [], items: [], checkouts: [], known: {} });
+const empty = (): State => ({ lists: [], items: [], known: {} });
 
 // Older data had a single list. Make sure there is always at least one list
 // and every item belongs to an existing one.
@@ -108,6 +100,5 @@ export function publicView(s: State) {
   const suggestions = Object.values(s.known)
     .sort((a, b) => b.count - a.count || b.lastUsed - a.lastUsed)
     .map((k) => ({ name: k.name, listId: k.listId }));
-  const checkouts = [...s.checkouts].sort((a, b) => b.at - a.at);
-  return { lists: s.lists, items: s.items, suggestions, checkouts };
+  return { lists: s.lists, items: s.items, suggestions };
 }

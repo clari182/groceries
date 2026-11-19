@@ -4,25 +4,19 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type List = { id: string; name: string };
 type Item = { id: string; listId: string; name: string; checked: boolean; updatedAt: number };
-type Checkout = { id: string; amount: number; at: number; listId?: string };
 type Suggestion = { name: string; listId?: string };
-type Data = { lists: List[]; items: Item[]; suggestions: Suggestion[]; checkouts: Checkout[] };
+type Data = { lists: List[]; items: Item[]; suggestions: Suggestion[] };
 
 const norm = (s: string) => s.trim().toLowerCase();
 const LIST_KEY = "groceries:list";
 
 export default function Home() {
-  const [data, setData] = useState<Data>({ lists: [], items: [], suggestions: [], checkouts: [] });
+  const [data, setData] = useState<Data>({ lists: [], items: [], suggestions: [] });
   const [loaded, setLoaded] = useState(false);
   const [listId, setListId] = useState<string>("");
   const [text, setText] = useState("");
   const [focused, setFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [amount, setAmount] = useState("");
-  const [amountError, setAmountError] = useState("");
-  const [saving, setSaving] = useState(false);
 
   const [listsOpen, setListsOpen] = useState(false);
   const [moving, setMoving] = useState<Item | null>(null);
@@ -166,45 +160,6 @@ export default function Home() {
     send(`/api/lists/${list.id}`, "DELETE");
   }
 
-  async function saveCheckout() {
-    const value = Number(amount.replace(",", ".").trim());
-    if (!Number.isFinite(value) || value <= 0) {
-      setAmountError("Enter how much you spent, like 42.50");
-      return;
-    }
-    setSaving(true);
-    try {
-      const res = await fetch("/api/checkouts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: value, listId: currentId }),
-      });
-      if (!res.ok) {
-        setAmountError((await res.json().catch(() => ({}))).error || "Couldn't save, try again");
-        return;
-      }
-      setData(await res.json());
-      setCheckoutOpen(false);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function removeCheckout(c: Checkout) {
-    if (!confirm(`Delete the ${money(c.amount)} checkout from ${formatDate(c.at)}?`)) return;
-    setData((d) => ({ ...d, checkouts: d.checkouts.filter((x) => x.id !== c.id) }));
-    send(`/api/checkouts/${c.id}`, "DELETE");
-  }
-
-  const listName = (id?: string) => data.lists.find((l) => l.id === id)?.name;
-  const now = new Date();
-  const monthTotal = data.checkouts
-    .filter((c) => {
-      const d = new Date(c.at);
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    })
-    .reduce((sum, c) => sum + c.amount, 0);
-
   return (
     <main>
       <header>
@@ -310,79 +265,6 @@ export default function Home() {
             ))}
           </ul>
         </section>
-      )}
-
-      {data.checkouts.length > 0 && (
-        <section className="done spending">
-          <div className="done-head">
-            <h2>Spending</h2>
-            <span className="month">This month: {money(monthTotal)}</span>
-          </div>
-          <ul className="list">
-            {data.checkouts.map((c) => (
-              <li key={c.id}>
-                <div className="row static">
-                  <span className="when">
-                    {formatDate(c.at)}
-                    {listName(c.listId) && <span className="tag">{listName(c.listId)}</span>}
-                  </span>
-                  <span className="amount">{money(c.amount)}</span>
-                </div>
-                <button className="remove" onClick={() => removeCheckout(c)} aria-label="Delete checkout">
-                  ×
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <div className="checkout-bar">
-        <button
-          onClick={() => {
-            setAmount("");
-            setAmountError("");
-            setCheckoutOpen(true);
-          }}
-        >
-          Checkout{current ? ` · ${current.name}` : ""}
-        </button>
-      </div>
-
-      {checkoutOpen && (
-        <Sheet onClose={() => !saving && setCheckoutOpen(false)} labelledBy="checkout-title">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              saveCheckout();
-            }}
-          >
-            <h3 id="checkout-title">How much did you spend{current ? ` at ${current.name}` : ""}?</h3>
-            <input
-              className="big"
-              autoFocus
-              value={amount}
-              onChange={(e) => {
-                setAmount(e.target.value);
-                setAmountError("");
-              }}
-              inputMode="decimal"
-              placeholder="0.00"
-              aria-label="Total spent"
-              enterKeyHint="done"
-            />
-            {amountError && <p className="error">{amountError}</p>}
-            <p className="hint">Saved with today&apos;s date and time.</p>
-            <div className="sheet-actions">
-              <button type="button" className="secondary" onClick={() => setCheckoutOpen(false)} disabled={saving}>
-                Cancel
-              </button>
-              <button type="submit" className="primary" disabled={saving || !amount.trim()}>
-                {saving ? "Saving…" : "Save"}
-              </button>
-            </div>
-          </form>
-        </Sheet>
       )}
 
       {moving && (
@@ -506,19 +388,4 @@ function ListsSheet({
       </div>
     </Sheet>
   );
-}
-
-function money(n: number) {
-  return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function formatDate(ms: number) {
-  return new Date(ms).toLocaleString(undefined, {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    year: new Date(ms).getFullYear() === new Date().getFullYear() ? undefined : "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
