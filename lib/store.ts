@@ -1,20 +1,45 @@
 import { promises as fs } from "fs";
 import path from "path";
 
+export type List = {
+  id: string;
+  name: string;
+};
+
 export type Item = {
   id: string;
+  listId: string;
   name: string;
   checked: boolean;
   updatedAt: number;
 };
 
-export type State = {
-  items: Item[];
-  // Every name ever added, with how often it was used. Feeds autocomplete.
-  known: Record<string, { name: string; count: number; lastUsed: number }>;
+export type Checkout = {
+  id: string;
+  amount: number;
+  at: number; // when it was logged (ms since epoch)
+  listId?: string; // which list the trip was for (older checkouts have none)
 };
 
-const empty = (): State => ({ items: [], known: {} });
+export type State = {
+  lists: List[];
+  items: Item[];
+  checkouts: Checkout[];
+  // Every name ever added, with how often it was used. Feeds autocomplete.
+  // listId is the list the name was last added to, so suggestions can favor it.
+  known: Record<string, { name: string; count: number; lastUsed: number; listId?: string }>;
+};
+
+const empty = (): State => ({ lists: [], items: [], checkouts: [], known: {} });
+
+// Older data had a single list. Make sure there is always at least one list
+// and every item belongs to an existing one.
+function normalize(s: State): State {
+  if (s.lists.length === 0) s.lists.push({ id: "default", name: "Supermarket" }); // fixed id: GETs don't save
+  const ids = new Set(s.lists.map((l) => l.id));
+  for (const i of s.items) if (!ids.has(i.listId)) i.listId = s.lists[0].id;
+  return s;
+}
 const KEY = "groceries:state";
 
 // Upstash Redis (or Vercel KV, which exposes the same REST API) when configured.
@@ -38,9 +63,9 @@ const file = path.join(process.cwd(), "data", "groceries.json");
 export async function load(): Promise<State> {
   try {
     const raw = redisUrl && redisToken ? await redis(["GET", KEY]) : await fs.readFile(file, "utf8");
-    return raw ? { ...empty(), ...JSON.parse(raw) } : empty();
+    return normalize(raw ? { ...empty(), ...JSON.parse(raw) } : empty());
   } catch (e: any) {
-    if (e?.code === "ENOENT") return empty();
+    if (e?.code === "ENOENT") return normalize(empty());
     throw e;
   }
 }
@@ -70,15 +95,19 @@ export function update(fn: (s: State) => void): Promise<State> {
 
 export const keyOf = (name: string) => name.trim().toLowerCase();
 
-export function remember(s: State, name: string) {
+export const cleanName = (v: unknown, max = 80) =>
+  typeof v === "string" ? v.trim().replace(/\s+/g, " ").slice(0, max) : "";
+
+export function remember(s: State, name: string, listId: string) {
   const k = keyOf(name);
   const prev = s.known[k];
-  s.known[k] = { name: prev?.name ?? name.trim(), count: (prev?.count ?? 0) + 1, lastUsed: Date.now() };
+  s.known[k] = { name: prev?.name ?? name.trim(), count: (prev?.count ?? 0) + 1, lastUsed: Date.now(), listId };
 }
 
 export function publicView(s: State) {
   const suggestions = Object.values(s.known)
     .sort((a, b) => b.count - a.count || b.lastUsed - a.lastUsed)
-    .map((k) => k.name);
-  return { items: s.items, suggestions };
+    .map((k) => ({ name: k.name, listId: k.listId }));
+  const checkouts = [...s.checkouts].sort((a, b) => b.at - a.at);
+  return { lists: s.lists, items: s.items, suggestions, checkouts };
 }

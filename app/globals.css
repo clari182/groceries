@@ -120,3 +120,128 @@ h2 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.04em; color: 
 .remove { border: 0; background: none; color: var(--muted); font-size: 24px; padding: 0 16px; min-height: 54px; }
 .link { border: 0; background: none; color: var(--accent); font-size: 14px; padding: 4px; }
 .empty { color: var(--muted); text-align: center; padding: 24px 0; }
+
+/* Checkout */
+main { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
+.checkout-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--bg) 70%, transparent);
+}
+.checkout-bar button {
+  display: block;
+  width: 100%;
+  max-width: 528px;
+  margin: 0 auto;
+  padding: 16px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 600;
+}
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.sheet {
+  width: 100%;
+  max-width: 560px;
+  background: var(--card);
+  border-radius: 20px 20px 0 0;
+  padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+}
+@media (min-width: 600px) {
+  .overlay { align-items: center; }
+  .sheet { border-radius: 20px; }
+}
+.sheet h3 { margin: 0 0 14px; font-size: 20px; }
+.sheet input {
+  width: 100%;
+  font-size: 17px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+}
+.sheet input:focus { border-color: var(--accent); }
+.sheet input.big { font-size: 28px; }
+.sheet .hint { margin: 8px 0 16px; }
+.error { color: #c0392b; font-size: 14px; margin: 8px 0 0; }
+.sheet-actions { display: flex; gap: 10px; }
+.sheet-actions button { flex: 1; padding: 14px; border-radius: 14px; font-size: 17px; font-weight: 600; }
+.sheet-actions .primary { border: 0; background: var(--accent); color: #fff; }
+.sheet-actions .primary:disabled { opacity: 0.5; }
+.sheet-actions .secondary { border: 1px solid var(--line); background: none; }
+.row.static { cursor: default; justify-content: space-between; }
+.row.static:active { background: none; }
+.when { color: var(--muted); font-size: 15px; }
+.amount { font-weight: 600; font-variant-numeric: tabular-nums; }
+.month { font-size: 14px; color: var(--muted); }
+
+/* Lists */
+.tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin: 0 -16px 14px;
+  padding: 2px 16px;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  font-size: 15px;
+  white-space: nowrap;
+}
+.tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.tab.ghost { background: none; border-style: dashed; color: var(--muted); }
+.badge {
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+.tab.active .badge { background: rgba(255, 255, 255, 0.25); color: #fff; }
+.move { font-size: 20px; }
+.tag {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 12px;
+}
+.choices { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.choices button { padding: 14px; border-radius: 14px; font-size: 17px; text-align: left; border: 1px solid var(--line); background: none; }
+.edit-lists { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.edit-lists li { display: flex; align-items: center; }
+.edit-lists .remove { min-height: 48px; }
+.edit-lists .remove:disabled { opacity: 0.3; }
+.new-list { display: flex; gap: 8px; }
+.new-list button { flex: none; padding: 0 18px; border: 0; border-radius: 14px; background: var(--accent); color: #fff; font-size: 16px; font-weight: 600; }
+.new-list button:disabled { opacity: 0.5; }
+.sheet { max-height: 85vh; overflow-y: auto; }
